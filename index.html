@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>智慧業務助理 Pro</title>
+    <title>高精度業務助理 (AI+)</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -66,7 +66,7 @@
                      <span>匯入資料</span>
                      <input type="file" @change="importData" class="absolute inset-0 opacity-0 w-full h-full">
                 </div>
-                <button @click="if(confirm('清除後無法復原！')) { localStorage.removeItem('bizCardsV6'); contacts=[]; }" class="w-full text-left py-3 text-red-500">清除所有資料</button>
+                <button @click="if(confirm('清除後無法復原！')) { localStorage.removeItem('bizCardsV7'); contacts=[]; }" class="w-full text-left py-3 text-red-500">清除所有資料</button>
             </div>
         </div>
     </main>
@@ -74,7 +74,6 @@
     <!-- 底部 Tab Bar -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center pb-[env(safe-area-inset-bottom)] pt-2 z-30 h-[85px]">
         <button @click="tab = 'home'" :class="tab==='home' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-16">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             <span class="text-[10px] font-medium mt-1">客戶</span>
         </button>
         <div class="relative -top-6">
@@ -83,7 +82,6 @@
             </button>
         </div>
         <button @click="tab = 'settings'" :class="tab==='settings' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-16">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             <span class="text-[10px] font-medium mt-1">設定</span>
         </button>
     </nav>
@@ -92,7 +90,10 @@
     <div x-show="isProcessing" class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center text-white p-8 text-center" style="display: none;">
         <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
         <p x-text="progressMsg" class="text-lg font-bold mb-2"></p>
-        <p class="text-xs text-gray-400">正在進行影像增強與 AI 辨識...</p>
+        <div x-show="debugImg" class="mt-4 border border-gray-500 p-1">
+             <p class="text-xs text-gray-400 mb-1">二值化預覽</p>
+             <img :src="debugImg" class="h-20 object-contain">
+        </div>
     </div>
 
     <!-- 編輯/新增 視窗 -->
@@ -101,7 +102,6 @@
             
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold" x-text="form.id ? '編輯資料' : '確認資料'"></h2>
-                <!-- 預覽小圖 -->
                 <div class="w-12 h-12 bg-gray-100 rounded overflow-hidden">
                     <img :src="tempPhoto" class="w-full h-full object-cover">
                 </div>
@@ -110,7 +110,6 @@
             <div class="space-y-4 relative">
                 <input x-model="form.name" placeholder="姓名 *" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
                 
-                <!-- 智慧公司輸入欄 (含下拉選單) -->
                 <div class="relative">
                     <input x-model="form.company" @input="filterCompanies" @focus="showCompanyList=true" @blur="setTimeout(()=>showCompanyList=false, 200)"
                            placeholder="公司名稱 (輸入以搜尋舊資料)" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition font-bold text-gray-700">
@@ -128,24 +127,20 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <input x-model="form.mobile" type="tel" placeholder="手機" class="bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
-                    <input x-model="form.phone" type="tel" placeholder="公司電話 (自動帶入)" class="bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition bg-yellow-50/50">
+                    <input x-model="form.phone" type="tel" placeholder="公司電話" class="bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
                 </div>
                 
-                <input x-model="form.ext" type="tel" placeholder="分機 (輸入分機)" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition text-blue-600 font-bold">
+                <input x-model="form.ext" type="tel" placeholder="分機" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition text-blue-600 font-bold">
                 
                 <textarea x-model="form.notes" rows="2" placeholder="備註..." class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition"></textarea>
             </div>
 
             <button @click="saveContact()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-6 shadow-lg active:scale-95 transition-transform">儲存</button>
-            
-            <!-- 新增的刪除按鈕 (僅在編輯模式顯示) -->
-            <button x-show="isEditingExisting" @click="deleteCurrentContact()" class="w-full bg-white text-red-500 border border-red-100 font-bold py-3 rounded-xl mt-3 shadow-sm active:bg-red-50 transition">
-                刪除此名片
-            </button>
+            <button x-show="isEditingExisting" @click="deleteCurrentContact()" class="w-full bg-white text-red-500 border border-red-100 font-bold py-3 rounded-xl mt-3 shadow-sm active:bg-red-50 transition">刪除此名片</button>
         </div>
     </div>
 
-    <!-- 詳情頁 (Action Sheet) -->
+    <!-- 詳情頁 -->
     <div x-show="detailOpen" class="fixed inset-0 z-40 flex items-end justify-center pointer-events-none">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-auto" @click="detailOpen = false" x-show="detailOpen"></div>
         <div class="bg-white w-full max-w-lg rounded-t-3xl p-6 pointer-events-auto shadow-2xl safe-bottom max-h-[95vh] overflow-y-auto transform transition-transform"
@@ -160,11 +155,9 @@
                             <span x-text="activeContact.ext ? '撥打分機' : '撥打公司'"></span>
                         </a>
                     </div>
-                    <!-- 筆記區 -->
                     <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-100 mb-4" x-show="activeContact.notes">
                         <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="activeContact.notes"></p>
                     </div>
-
                     <div class="w-full h-48 rounded-xl overflow-hidden bg-gray-100 mb-4">
                         <img :src="activeContact.photo" class="w-full h-full object-cover">
                     </div>
@@ -185,16 +178,17 @@
                 isProcessing: false,
                 progressMsg: '',
                 isEditModalOpen: false,
-                isEditingExisting: false, // 判斷是否為編輯舊資料
+                isEditingExisting: false,
                 detailOpen: false,
                 activeContact: null,
                 tempPhoto: null,
+                debugImg: null, // 用於顯示處理後的二值化圖片
                 showCompanyList: false,
                 companySuggestions: [],
                 form: { id: null, name: '', company: '', mobile: '', phone: '', ext: '', notes: '' },
 
                 init() {
-                    const data = localStorage.getItem('bizCardsV6');
+                    const data = localStorage.getItem('bizCardsV7');
                     if (data) this.contacts = JSON.parse(data);
                 },
 
@@ -230,22 +224,29 @@
                     const file = e.target.files[0];
                     if (!file) return;
                     this.isProcessing = true;
-                    this.isEditingExisting = false; // 新增模式
+                    this.isEditingExisting = false;
 
                     try {
-                        this.progressMsg = '影像增強處理中...';
+                        this.progressMsg = '優化影像 (去噪+二值化)...';
                         const processedImg = await this.preprocessImage(file);
                         this.tempPhoto = processedImg.original;
+                        this.debugImg = processedImg.binary; // 讓用戶看到電腦看到了什麼
                         
-                        this.progressMsg = 'AI 文字辨識中...';
+                        this.progressMsg = 'AI 讀取文字中...';
                         const worker = await Tesseract.createWorker('chi_tra+eng');
+                        
+                        // 使用 PSM 6 (Assume a single uniform block of text) 適合名片
+                        await worker.setParameters({
+                          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                        });
+
                         const ret = await worker.recognize(processedImg.binary);
                         await worker.terminate();
 
                         this.parseCardText(ret.data.text);
                         
                     } catch (err) {
-                        alert('辨識失敗，請手動輸入');
+                        alert('辨識失敗: ' + err.message);
                     } finally {
                         this.isProcessing = false;
                         this.isEditModalOpen = true;
@@ -260,21 +261,42 @@
                             img.onload = () => {
                                 const canvas = document.createElement('canvas');
                                 const ctx = canvas.getContext('2d');
-                                const maxW = 1000;
-                                const scale = maxW / img.width;
-                                canvas.width = maxW;
+                                
+                                // 1. 放大圖片 (Rescaling) 提升小字辨識率
+                                const targetWidth = 1600; 
+                                const scale = targetWidth / img.width;
+                                canvas.width = targetWidth;
                                 canvas.height = img.height * scale;
+                                
+                                // 繪製原圖
                                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                const originalDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                const originalDataUrl = canvas.toDataURL('image/jpeg', 0.6); // 儲存預覽用 (不需太高畫質)
 
+                                // --- 影像增強演算法 ---
                                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                                 const data = imageData.data;
+                                
+                                // 2. 灰階 + 自動二值化 (Otsu's Thresholding 近似法)
+                                // 先計算平均亮度
+                                let totalBrightness = 0;
                                 for (let i = 0; i < data.length; i += 4) {
-                                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                                    const threshold = avg > 128 ? 255 : 0;
-                                    data[i] = data[i+1] = data[i+2] = threshold;
+                                    totalBrightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+                                }
+                                const avgBrightness = totalBrightness / (data.length / 4);
+                                // 設定閾值：比平均亮度稍低一點，讓文字(黑)更突出
+                                const threshold = avgBrightness * 0.9; 
+
+                                for (let i = 0; i < data.length; i += 4) {
+                                    const r = data[i], g = data[i+1], b = data[i+2];
+                                    // 加權灰階公式 (人眼對綠色較敏感)
+                                    const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                                    
+                                    // 二值化
+                                    const val = gray < threshold ? 0 : 255; 
+                                    data[i] = data[i+1] = data[i+2] = val;
                                 }
                                 ctx.putImageData(imageData, 0, 0);
+                                // --- 結束 ---
 
                                 resolve({ original: originalDataUrl, binary: canvas.toDataURL('image/jpeg', 0.9) });
                             };
@@ -286,17 +308,43 @@
 
                 parseCardText(text) {
                     this.form = { id: Date.now(), name: '', company: '', mobile: '', phone: '', ext: '', notes: '' };
-                    const lines = text.split('\n').map(l => l.trim().replace(/\s/g, '')).filter(l => l);
-                    const mobileRegex = /(09\d{8})/;
-                    const phoneRegex = /(0\d{1,3}\d{6,8})/; 
+                    
+                    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+                    
+                    // 改進的 Regex: 容許常見 OCR 錯誤 (例如 0 變 O, 1 變 l)
+                    // 使用 [0-9Ool] 來抓取可能的數字
+                    const looseMobile = /(09[0-9Ool]{8})/;
+                    const loosePhone = /(0[0-9Ool]{1,3}[-\s]?[0-9Ool]{6,8})/; 
+
+                    const fixNum = (str) => str.replace(/O/g, '0').replace(/o/g, '0').replace(/l/g, '1').replace(/[-\s]/g, '');
 
                     lines.forEach(line => {
-                        const cleanLine = line.replace(/[-.)(]/g, '');
-                        if (!this.form.mobile && mobileRegex.test(cleanLine)) this.form.mobile = cleanLine.match(mobileRegex)[0];
-                        else if (!this.form.phone && phoneRegex.test(cleanLine)) this.form.phone = cleanLine.match(phoneRegex)[0];
+                        const cleanLine = line.replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-]/g, ''); // 只留中英數
+
+                        // 抓手機
+                        if (!this.form.mobile && looseMobile.test(cleanLine)) {
+                            this.form.mobile = fixNum(cleanLine.match(looseMobile)[0]);
+                        }
+                        // 抓公司電話 (如果不是手機)
+                        else if (!this.form.phone && loosePhone.test(cleanLine)) {
+                            const p = fixNum(cleanLine.match(loosePhone)[0]);
+                            if (!p.startsWith('09')) this.form.phone = p;
+                        }
                         
-                        if (!this.form.name && line.length >= 2 && line.length <= 4) this.form.name = line;
-                        if (!this.form.company && (line.includes('公司') || line.includes('Ltd'))) this.form.company = line;
+                        // 抓公司：關鍵字加權
+                        if (!this.form.company) {
+                             if (line.includes('公司') || line.includes('Ltd') || line.includes('Inc')) {
+                                 this.form.company = line;
+                             }
+                        }
+                        
+                        // 抓姓名：如果這行只有 2-4 個中文字，且不是職稱
+                        if (!this.form.name && /^[\u4e00-\u9fa5]{2,4}$/.test(cleanLine)) {
+                             const jobTitles = ['經理', '主任', '專員', '處長', '總監', '協理', '董事', '代表', '工程師'];
+                             if (!jobTitles.some(t => cleanLine.includes(t))) {
+                                 this.form.name = cleanLine;
+                             }
+                        }
                     });
                 },
                 
@@ -304,23 +352,20 @@
                     this.detailOpen = false;
                     this.form = { ...c };
                     this.tempPhoto = c.photo;
-                    this.isEditingExisting = true; // 設定為編輯模式，顯示刪除按鈕
+                    this.isEditingExisting = true;
                     this.isEditModalOpen = true;
                 },
 
                 openDetail(c) { this.activeContact = c; this.detailOpen = true; },
 
                 saveContact() {
-                    // 如果是編輯舊資料 (ID 已存在)
+                    if(!this.form.id) this.form.id = Date.now();
                     const idx = this.contacts.findIndex(c => c.id === this.form.id);
-                    if (idx > -1) {
-                        this.contacts[idx] = { ...this.form, photo: this.tempPhoto };
-                    } else {
-                        // 新增資料 (確保 ID 唯一)
-                        const newContact = { ...this.form, photo: this.tempPhoto };
-                        if(!newContact.id) newContact.id = Date.now();
-                        this.contacts.unshift(newContact);
-                    }
+                    const newContact = { ...this.form, photo: this.tempPhoto };
+                    
+                    if (idx > -1) this.contacts[idx] = newContact;
+                    else this.contacts.unshift(newContact);
+                    
                     this.saveToStorage();
                     this.isEditModalOpen = false;
                 },
@@ -333,19 +378,14 @@
                     }
                 },
 
-                saveToStorage() {
-                    localStorage.setItem('bizCardsV6', JSON.stringify(this.contacts));
-                },
-
+                saveToStorage() { localStorage.setItem('bizCardsV7', JSON.stringify(this.contacts)); },
                 exportData() {
                     const blob = new Blob([JSON.stringify(this.contacts)], {type: 'application/json'});
-                    const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = URL.createObjectURL(blob);
                     a.download = `cards_${new Date().toISOString().slice(0,10)}.json`;
                     a.click();
                 },
-                
                 importData(e) {
                     const reader = new FileReader();
                     reader.onload = (evt) => {
