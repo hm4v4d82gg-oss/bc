@@ -3,171 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>高精度業務助理 (AI+)</title>
+    <title>極速業務助理</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3062/3062634.png">
 
+    <!-- 引入 Tailwind CSS & Alpine.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        /* 讓輸入框獲得焦點時更明顯 */
+        input:focus, textarea:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 h-screen overflow-hidden w-full fixed" x-data="app()">
+<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden w-full fixed" x-data="app()">
 
     <!-- 頂部導航 -->
     <header class="absolute top-0 left-0 right-0 bg-white/95 backdrop-blur-md z-20 px-4 pt-12 pb-3 shadow-sm border-b border-gray-100">
         <div class="flex justify-between items-center mb-3 px-1">
             <h1 class="text-2xl font-bold text-gray-900" x-text="tab === 'home' ? '客戶名單' : '設定'"></h1>
-            <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-full" x-show="tab === 'home'" x-text="contacts.length + ' 位'"></span>
+            <span class="text-xs text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full" x-show="tab === 'home'" x-text="contacts.length + ' 位'"></span>
         </div>
         <div x-show="tab === 'home'" class="relative">
-            <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <input type="text" x-model="search" placeholder="搜尋..." class="w-full bg-gray-100 text-gray-900 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 transition-all">
+            <!-- 搜尋 Icon -->
+            <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="text" x-model="search" placeholder="搜尋姓名、公司或電話..." 
+                   class="w-full bg-gray-100 text-gray-900 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:bg-white focus:outline-none transition-colors">
         </div>
     </header>
 
-    <!-- 主列表 -->
+    <!-- 主內容區 -->
     <main class="absolute top-[125px] bottom-[85px] left-0 right-0 overflow-y-auto hide-scrollbar px-4 pt-2 pb-20">
+        
+        <!-- Tab 1: 列表 -->
         <div x-show="tab === 'home'">
+            <!-- 空狀態 -->
             <div x-show="filteredContacts.length === 0" class="flex flex-col items-center justify-center h-64 text-gray-400">
-                <p>暫無資料，點擊下方 ＋ 新增</p>
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+                <p>點擊下方藍色按鈕新增名片</p>
             </div>
+
+            <!-- 名片卡片 -->
             <template x-for="c in filteredContacts" :key="c.id">
-                <div @click="openDetail(c)" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 mb-3 active:scale-[0.98] transition-transform relative">
-                    <div class="w-20 h-20 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden border border-gray-200">
+                <div @click="openDetail(c)" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 mb-3 active:scale-[0.98] transition-transform duration-100">
+                    <!-- 照片區 -->
+                    <div class="w-20 h-20 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden border border-gray-200 relative">
                         <img :src="c.photo" class="w-full h-full object-cover" x-show="c.photo">
-                        <div x-show="!c.photo" class="w-full h-full flex items-center justify-center text-gray-300 text-xs">NO IMG</div>
+                        <div x-show="!c.photo" class="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold">NO IMG</div>
                     </div>
+                    
+                    <!-- 資訊區 -->
                     <div class="flex-1 min-w-0 flex flex-col justify-center py-1">
                         <h3 class="text-lg font-bold text-gray-900 truncate" x-text="c.name"></h3>
                         <p class="text-sm text-gray-500 font-medium truncate" x-text="c.company || '未填寫公司'"></p>
+                        
+                        <!-- 標籤/撥號提示 -->
                         <div class="flex gap-2 mt-2">
-                            <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded font-bold" x-show="c.mobile">手機</span>
-                            <span class="px-2 py-0.5 bg-green-50 text-green-600 text-xs rounded font-bold" x-show="c.phone">公司</span>
+                            <span x-show="c.mobile" class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded font-bold flex items-center gap-1">
+                                📱 手機
+                            </span>
+                            <span x-show="c.phone" class="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] rounded font-bold flex items-center gap-1">
+                                🏢 公司
+                            </span>
                         </div>
                     </div>
                 </div>
             </template>
-            <div class="h-24"></div>
+            <div class="h-24"></div> <!-- 底部留白 -->
         </div>
 
+        <!-- Tab 2: 設定 -->
         <div x-show="tab === 'settings'" class="p-4 space-y-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm">
-                <button @click="exportData" class="w-full text-left py-3 border-b text-blue-600">匯出資料 (JSON)</button>
-                <div class="relative py-3 border-b text-blue-600">
-                     <span>匯入資料</span>
-                     <input type="file" @change="importData" class="absolute inset-0 opacity-0 w-full h-full">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wide">資料管理</h3>
+                
+                <button @click="exportData" class="w-full flex items-center justify-between py-3 border-b border-gray-100 text-blue-600 active:bg-blue-50 rounded px-2">
+                    <span>匯出備份 (JSON)</span>
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                </button>
+                
+                <div class="relative w-full py-3 border-b border-gray-100 text-blue-600 active:bg-blue-50 rounded px-2">
+                     <div class="flex items-center justify-between">
+                        <span>匯入備份</span>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m-4-4v12" /></svg>
+                     </div>
+                     <input type="file" @change="importData" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
                 </div>
-                <button @click="if(confirm('清除後無法復原！')) { localStorage.removeItem('bizCardsV7'); contacts=[]; }" class="w-full text-left py-3 text-red-500">清除所有資料</button>
+                
+                <button @click="if(confirm('警告：確定要刪除所有資料嗎？此操作無法復原。')) { localStorage.removeItem('bizCardsManual'); contacts=[]; }" class="w-full flex items-center justify-between py-3 text-red-500 active:bg-red-50 rounded px-2 mt-2">
+                    <span>清除所有資料</span>
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
             </div>
+            <p class="text-center text-xs text-gray-400">Version 8.0 (Manual Mode)</p>
         </div>
     </main>
 
-    <!-- 底部 Tab Bar -->
+    <!-- 底部導航列 (Icon 修復版) -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center pb-[env(safe-area-inset-bottom)] pt-2 z-30 h-[85px]">
-        <button @click="tab = 'home'" :class="tab==='home' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-16">
-            <span class="text-[10px] font-medium mt-1">客戶</span>
+        <!-- 首頁按鈕 -->
+        <button @click="tab = 'home'" :class="tab==='home' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-20 transition-colors">
+            <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-[10px] font-medium">客戶</span>
         </button>
+
+        <!-- 中央新增按鈕 -->
         <div class="relative -top-6">
-            <button @click="$refs.photoInput.click()" class="w-14 h-14 bg-blue-600 rounded-full text-white shadow-lg flex items-center justify-center active:scale-95 border-4 border-gray-100">
-                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <button @click="openAddModal()" class="w-14 h-14 bg-blue-600 rounded-full text-white shadow-lg flex items-center justify-center transform transition active:scale-95 border-4 border-gray-50">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
             </button>
         </div>
-        <button @click="tab = 'settings'" :class="tab==='settings' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-16">
-            <span class="text-[10px] font-medium mt-1">設定</span>
+
+        <!-- 設定按鈕 -->
+        <button @click="tab = 'settings'" :class="tab==='settings' ? 'text-blue-600' : 'text-gray-400'" class="flex flex-col items-center w-20 transition-colors">
+            <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-[10px] font-medium">設定</span>
         </button>
     </nav>
 
-    <!-- 處理中畫面 -->
-    <div x-show="isProcessing" class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center text-white p-8 text-center" style="display: none;">
-        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-        <p x-text="progressMsg" class="text-lg font-bold mb-2"></p>
-        <div x-show="debugImg" class="mt-4 border border-gray-500 p-1">
-             <p class="text-xs text-gray-400 mb-1">二值化預覽</p>
-             <img :src="debugImg" class="h-20 object-contain">
-        </div>
-    </div>
-
-    <!-- 編輯/新增 視窗 -->
+    <!-- 新增/編輯 視窗 (全手動) -->
     <div x-show="isEditModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" style="display: none;">
-        <div class="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto" @click.away="isEditModalOpen = false">
+        <div class="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl max-h-[95vh] overflow-y-auto" @click.away="isEditModalOpen = false">
             
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold" x-text="form.id ? '編輯資料' : '確認資料'"></h2>
-                <div class="w-12 h-12 bg-gray-100 rounded overflow-hidden">
-                    <img :src="tempPhoto" class="w-full h-full object-cover">
-                </div>
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                <h2 class="text-lg font-bold text-gray-800" x-text="form.id ? '編輯名片' : '新增名片'"></h2>
+                <button @click="isEditModalOpen = false" class="text-gray-400 p-1">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
             </div>
 
-            <div class="space-y-4 relative">
-                <input x-model="form.name" placeholder="姓名 *" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
-                
-                <div class="relative">
-                    <input x-model="form.company" @input="filterCompanies" @focus="showCompanyList=true" @blur="setTimeout(()=>showCompanyList=false, 200)"
-                           placeholder="公司名稱 (輸入以搜尋舊資料)" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition font-bold text-gray-700">
-                    
-                    <div x-show="showCompanyList && companySuggestions.length > 0" 
-                         class="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg border border-gray-100 mt-1 z-50 max-h-40 overflow-y-auto">
-                        <template x-for="comp in companySuggestions">
-                            <div @click="selectCompany(comp)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 flex justify-between items-center">
-                                <span x-text="comp.name" class="font-bold text-gray-800"></span>
-                                <span x-text="comp.phone" class="text-xs text-gray-400"></span>
+            <div class="space-y-4">
+                <!-- 照片上傳 (手動點擊) -->
+                <div class="flex justify-center mb-2">
+                    <div @click="$refs.photoInput.click()" class="relative group cursor-pointer w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 hover:border-blue-400">
+                        <template x-if="tempPhoto">
+                            <img :src="tempPhoto" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!tempPhoto">
+                            <div class="text-center text-gray-400">
+                                <svg class="w-8 h-8 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                <span class="text-[10px]">選取照片</span>
                             </div>
                         </template>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <input x-model="form.mobile" type="tel" placeholder="手機" class="bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
-                    <input x-model="form.phone" type="tel" placeholder="公司電話" class="bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition">
-                </div>
-                
-                <input x-model="form.ext" type="tel" placeholder="分機" class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition text-blue-600 font-bold">
-                
-                <textarea x-model="form.notes" rows="2" placeholder="備註..." class="w-full bg-gray-50 rounded-lg px-4 py-3 border focus:bg-white focus:border-blue-500 transition"></textarea>
-            </div>
+                <div class="space-y-3">
+                    <input x-model="form.name" placeholder="姓名 (必填)" class="w-full bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all font-bold">
+                    
+                    <!-- 智慧公司 (下拉選單) -->
+                    <div class="relative">
+                        <input x-model="form.company" @input="filterCompanies" @focus="showCompanyList=true" @blur="setTimeout(()=>showCompanyList=false, 200)"
+                               placeholder="公司名稱" class="w-full bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all">
+                        
+                        <div x-show="showCompanyList && companySuggestions.length > 0" 
+                             class="absolute top-full left-0 right-0 bg-white shadow-xl rounded-lg border border-gray-100 mt-1 z-50 max-h-40 overflow-y-auto">
+                            <template x-for="comp in companySuggestions">
+                                <div @click="selectCompany(comp)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0">
+                                    <div class="font-bold text-gray-800 text-sm" x-text="comp.name"></div>
+                                    <div class="text-xs text-gray-400" x-text="'公司電話: ' + comp.phone"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
 
-            <button @click="saveContact()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-6 shadow-lg active:scale-95 transition-transform">儲存</button>
-            <button x-show="isEditingExisting" @click="deleteCurrentContact()" class="w-full bg-white text-red-500 border border-red-100 font-bold py-3 rounded-xl mt-3 shadow-sm active:bg-red-50 transition">刪除此名片</button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input x-model="form.mobile" type="tel" placeholder="手機號碼" class="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all">
+                        <input x-model="form.phone" type="tel" placeholder="公司電話" class="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all">
+                    </div>
+                    
+                    <input x-model="form.ext" type="tel" placeholder="分機號碼" class="w-full bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all">
+                    
+                    <textarea x-model="form.notes" rows="2" placeholder="備註筆記..." class="w-full bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 focus:bg-white transition-all"></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button x-show="isEditingExisting" @click="deleteCurrentContact()" class="flex-1 bg-white text-red-500 border border-red-200 font-bold py-3 rounded-xl shadow-sm active:bg-red-50">
+                        刪除
+                    </button>
+                    <button @click="saveContact()" class="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">
+                        儲存資料
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 詳情頁 -->
+    <!-- 詳情頁 (Action Sheet) -->
     <div x-show="detailOpen" class="fixed inset-0 z-40 flex items-end justify-center pointer-events-none">
-        <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-auto" @click="detailOpen = false" x-show="detailOpen"></div>
+        <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-auto transition-opacity" @click="detailOpen = false" x-show="detailOpen" x-transition.opacity></div>
         <div class="bg-white w-full max-w-lg rounded-t-3xl p-6 pointer-events-auto shadow-2xl safe-bottom max-h-[95vh] overflow-y-auto transform transition-transform"
              x-show="detailOpen" x-transition:enter="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="translate-y-0" x-transition:leave-end="translate-y-full">
             <template x-if="activeContact">
                 <div>
-                    <h2 class="text-2xl font-bold" x-text="activeContact.name"></h2>
-                    <p class="text-gray-500 font-medium mb-4" x-text="activeContact.company"></p>
+                    <!-- 標題區 -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900" x-text="activeContact.name"></h2>
+                            <p class="text-gray-500 font-medium" x-text="activeContact.company"></p>
+                        </div>
+                        <button @click="editExisting(activeContact)" class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">編輯</button>
+                    </div>
+
+                    <!-- 撥號大按鈕 -->
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <a x-show="activeContact.mobile" :href="'tel:'+activeContact.mobile" class="bg-blue-600 text-white rounded-xl py-3 flex items-center justify-center font-bold">撥打手機</a>
-                        <a x-show="activeContact.phone" :href="'tel:'+activeContact.phone+(activeContact.ext?','+activeContact.ext:'')" class="bg-green-600 text-white rounded-xl py-3 flex items-center justify-center font-bold">
-                            <span x-text="activeContact.ext ? '撥打分機' : '撥打公司'"></span>
+                        <a x-show="activeContact.mobile" :href="'tel:'+activeContact.mobile" class="bg-blue-600 text-white rounded-xl py-4 flex items-center justify-center font-bold shadow-blue-200 shadow-lg active:scale-[0.98]">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                            撥打手機
+                        </a>
+                        <a x-show="activeContact.phone" :href="'tel:'+activeContact.phone+(activeContact.ext?','+activeContact.ext:'')" class="bg-green-600 text-white rounded-xl py-4 flex items-center justify-center font-bold shadow-green-200 shadow-lg active:scale-[0.98]">
+                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" /></svg>
+                            <span x-text="activeContact.ext ? '撥分機' : '撥公司'"></span>
                         </a>
                     </div>
-                    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-100 mb-4" x-show="activeContact.notes">
-                        <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="activeContact.notes"></p>
+                    
+                    <!-- 筆記顯示 -->
+                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 mb-4 relative" x-show="activeContact.notes">
+                        <span class="absolute top-2 right-3 text-xs text-yellow-500 font-bold uppercase">Note</span>
+                        <p class="text-sm text-gray-700 whitespace-pre-wrap mt-1" x-text="activeContact.notes"></p>
                     </div>
-                    <div class="w-full h-48 rounded-xl overflow-hidden bg-gray-100 mb-4">
-                        <img :src="activeContact.photo" class="w-full h-full object-cover">
+
+                    <!-- 照片大圖 -->
+                    <div class="w-full h-56 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-inner">
+                        <img :src="activeContact.photo" class="w-full h-full object-contain" x-show="activeContact.photo">
+                        <div x-show="!activeContact.photo" class="w-full h-full flex items-center justify-center text-gray-400">無照片</div>
                     </div>
-                    <button @click="editExisting(activeContact)" class="w-full py-3 text-gray-400 font-bold">編輯名片</button>
                 </div>
             </template>
         </div>
     </div>
 
-    <input type="file" x-ref="photoInput" accept="image/*" capture="environment" class="hidden" @change="processOCR">
+    <!-- 隱藏的 Input 用於選照片 -->
+    <input type="file" x-ref="photoInput" accept="image/*" class="hidden" @change="handlePhoto">
 
     <script>
         function app() {
@@ -175,20 +261,17 @@
                 tab: 'home',
                 search: '',
                 contacts: [],
-                isProcessing: false,
-                progressMsg: '',
                 isEditModalOpen: false,
                 isEditingExisting: false,
                 detailOpen: false,
                 activeContact: null,
                 tempPhoto: null,
-                debugImg: null, // 用於顯示處理後的二值化圖片
                 showCompanyList: false,
                 companySuggestions: [],
                 form: { id: null, name: '', company: '', mobile: '', phone: '', ext: '', notes: '' },
 
                 init() {
-                    const data = localStorage.getItem('bizCardsV7');
+                    const data = localStorage.getItem('bizCardsManual');
                     if (data) this.contacts = JSON.parse(data);
                 },
 
@@ -198,13 +281,16 @@
                     return this.contacts.filter(c => 
                         c.name.toLowerCase().includes(q) || 
                         (c.company && c.company.toLowerCase().includes(q)) ||
-                        (c.notes && c.notes.toLowerCase().includes(q))
+                        (c.mobile && c.mobile.includes(q)) ||
+                        (c.phone && c.phone.includes(q))
                     );
                 },
 
+                // 智慧公司列表 (基於現有資料)
                 filterCompanies() {
                     const input = this.form.company.toLowerCase();
                     if (input.length < 1) { this.companySuggestions = []; return; }
+                    
                     const uniqueComps = new Map();
                     this.contacts.forEach(c => {
                         if (c.company && c.company.toLowerCase().includes(input) && c.phone) {
@@ -220,132 +306,35 @@
                     this.showCompanyList = false;
                 },
 
-                async processOCR(e) {
+                openAddModal() {
+                    this.form = { id: null, name: '', company: '', mobile: '', phone: '', ext: '', notes: '' };
+                    this.tempPhoto = null;
+                    this.isEditingExisting = false;
+                    this.isEditModalOpen = true;
+                },
+
+                handlePhoto(e) {
                     const file = e.target.files[0];
                     if (!file) return;
-                    this.isProcessing = true;
-                    this.isEditingExisting = false;
-
-                    try {
-                        this.progressMsg = '優化影像 (去噪+二值化)...';
-                        const processedImg = await this.preprocessImage(file);
-                        this.tempPhoto = processedImg.original;
-                        this.debugImg = processedImg.binary; // 讓用戶看到電腦看到了什麼
-                        
-                        this.progressMsg = 'AI 讀取文字中...';
-                        const worker = await Tesseract.createWorker('chi_tra+eng');
-                        
-                        // 使用 PSM 6 (Assume a single uniform block of text) 適合名片
-                        await worker.setParameters({
-                          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-                        });
-
-                        const ret = await worker.recognize(processedImg.binary);
-                        await worker.terminate();
-
-                        this.parseCardText(ret.data.text);
-                        
-                    } catch (err) {
-                        alert('辨識失敗: ' + err.message);
-                    } finally {
-                        this.isProcessing = false;
-                        this.isEditModalOpen = true;
-                    }
-                },
-
-                preprocessImage(file) {
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            const img = new Image();
-                            img.onload = () => {
-                                const canvas = document.createElement('canvas');
-                                const ctx = canvas.getContext('2d');
-                                
-                                // 1. 放大圖片 (Rescaling) 提升小字辨識率
-                                const targetWidth = 1600; 
-                                const scale = targetWidth / img.width;
-                                canvas.width = targetWidth;
-                                canvas.height = img.height * scale;
-                                
-                                // 繪製原圖
-                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                const originalDataUrl = canvas.toDataURL('image/jpeg', 0.6); // 儲存預覽用 (不需太高畫質)
-
-                                // --- 影像增強演算法 ---
-                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                                const data = imageData.data;
-                                
-                                // 2. 灰階 + 自動二值化 (Otsu's Thresholding 近似法)
-                                // 先計算平均亮度
-                                let totalBrightness = 0;
-                                for (let i = 0; i < data.length; i += 4) {
-                                    totalBrightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
-                                }
-                                const avgBrightness = totalBrightness / (data.length / 4);
-                                // 設定閾值：比平均亮度稍低一點，讓文字(黑)更突出
-                                const threshold = avgBrightness * 0.9; 
-
-                                for (let i = 0; i < data.length; i += 4) {
-                                    const r = data[i], g = data[i+1], b = data[i+2];
-                                    // 加權灰階公式 (人眼對綠色較敏感)
-                                    const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-                                    
-                                    // 二值化
-                                    const val = gray < threshold ? 0 : 255; 
-                                    data[i] = data[i+1] = data[i+2] = val;
-                                }
-                                ctx.putImageData(imageData, 0, 0);
-                                // --- 結束 ---
-
-                                resolve({ original: originalDataUrl, binary: canvas.toDataURL('image/jpeg', 0.9) });
-                            };
-                            img.src = e.target.result;
+                    
+                    // 壓縮圖片 (為了 LocalStorage)
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            // 限制最大寬度 800px，兼顧清晰度與儲存空間
+                            const maxW = 800; 
+                            const scale = maxW / img.width;
+                            canvas.width = maxW;
+                            canvas.height = img.height * scale;
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            this.tempPhoto = canvas.toDataURL('image/jpeg', 0.7);
                         };
-                        reader.readAsDataURL(file);
-                    });
-                },
-
-                parseCardText(text) {
-                    this.form = { id: Date.now(), name: '', company: '', mobile: '', phone: '', ext: '', notes: '' };
-                    
-                    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
-                    
-                    // 改進的 Regex: 容許常見 OCR 錯誤 (例如 0 變 O, 1 變 l)
-                    // 使用 [0-9Ool] 來抓取可能的數字
-                    const looseMobile = /(09[0-9Ool]{8})/;
-                    const loosePhone = /(0[0-9Ool]{1,3}[-\s]?[0-9Ool]{6,8})/; 
-
-                    const fixNum = (str) => str.replace(/O/g, '0').replace(/o/g, '0').replace(/l/g, '1').replace(/[-\s]/g, '');
-
-                    lines.forEach(line => {
-                        const cleanLine = line.replace(/[^a-zA-Z0-9\u4e00-\u9fa5\s-]/g, ''); // 只留中英數
-
-                        // 抓手機
-                        if (!this.form.mobile && looseMobile.test(cleanLine)) {
-                            this.form.mobile = fixNum(cleanLine.match(looseMobile)[0]);
-                        }
-                        // 抓公司電話 (如果不是手機)
-                        else if (!this.form.phone && loosePhone.test(cleanLine)) {
-                            const p = fixNum(cleanLine.match(loosePhone)[0]);
-                            if (!p.startsWith('09')) this.form.phone = p;
-                        }
-                        
-                        // 抓公司：關鍵字加權
-                        if (!this.form.company) {
-                             if (line.includes('公司') || line.includes('Ltd') || line.includes('Inc')) {
-                                 this.form.company = line;
-                             }
-                        }
-                        
-                        // 抓姓名：如果這行只有 2-4 個中文字，且不是職稱
-                        if (!this.form.name && /^[\u4e00-\u9fa5]{2,4}$/.test(cleanLine)) {
-                             const jobTitles = ['經理', '主任', '專員', '處長', '總監', '協理', '董事', '代表', '工程師'];
-                             if (!jobTitles.some(t => cleanLine.includes(t))) {
-                                 this.form.name = cleanLine;
-                             }
-                        }
-                    });
+                        img.src = evt.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 },
                 
                 editExisting(c) {
@@ -359,10 +348,12 @@
                 openDetail(c) { this.activeContact = c; this.detailOpen = true; },
 
                 saveContact() {
-                    if(!this.form.id) this.form.id = Date.now();
-                    const idx = this.contacts.findIndex(c => c.id === this.form.id);
+                    if (!this.form.name) { alert('請輸入姓名'); return; }
+
+                    if (!this.form.id) this.form.id = Date.now();
                     const newContact = { ...this.form, photo: this.tempPhoto };
                     
+                    const idx = this.contacts.findIndex(c => c.id === this.form.id);
                     if (idx > -1) this.contacts[idx] = newContact;
                     else this.contacts.unshift(newContact);
                     
@@ -378,19 +369,27 @@
                     }
                 },
 
-                saveToStorage() { localStorage.setItem('bizCardsV7', JSON.stringify(this.contacts)); },
+                saveToStorage() { localStorage.setItem('bizCardsManual', JSON.stringify(this.contacts)); },
+                
                 exportData() {
                     const blob = new Blob([JSON.stringify(this.contacts)], {type: 'application/json'});
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
-                    a.download = `cards_${new Date().toISOString().slice(0,10)}.json`;
+                    a.download = `cards_backup_${new Date().toISOString().slice(0,10)}.json`;
                     a.click();
                 },
+                
                 importData(e) {
                     const reader = new FileReader();
                     reader.onload = (evt) => {
-                        this.contacts = JSON.parse(evt.target.result);
-                        this.saveToStorage();
+                        try {
+                            const data = JSON.parse(evt.target.result);
+                            if(Array.isArray(data)) {
+                                this.contacts = data;
+                                this.saveToStorage();
+                                alert('匯入成功！');
+                            }
+                        } catch(err) { alert('檔案格式錯誤'); }
                     };
                     reader.readAsText(e.target.files[0]);
                 }
