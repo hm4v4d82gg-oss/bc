@@ -269,4 +269,45 @@
                     reader.onload = (evt) => {
                         const img = new Image();
                         img.onload = () => {
-                            const canvas =
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            const maxW = 800; const scale = maxW / img.width;
+                            canvas.width = maxW; canvas.height = img.height * scale;
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            this.tempPhoto = canvas.toDataURL('image/jpeg', 0.7);
+                        };
+                        img.src = evt.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+                editExisting(c) { this.detailOpen = false; this.form = { ...c }; this.tempPhoto = c.photo; this.isEditingExisting = true; this.isEditModalOpen = true; },
+                openDetail(c) { this.activeContact = c; this.detailOpen = true; },
+                saveContact() {
+                    if (!this.form.name) { alert('請輸入姓名'); return; }
+                    if (!this.form.id) this.form.id = Date.now();
+                    const newContact = { ...this.form, photo: this.tempPhoto };
+                    const idx = this.contacts.findIndex(c => c.id === this.form.id);
+                    if (idx > -1) this.contacts[idx] = newContact; else this.contacts.unshift(newContact);
+                    this.saveToStorage(); this.isEditModalOpen = false;
+                },
+                deleteCurrentContact() { if(confirm('確定要刪除這張名片嗎？')) { this.contacts = this.contacts.filter(c => c.id !== this.form.id); this.saveToStorage(); this.isEditModalOpen = false; } },
+                saveToStorage() { localStorage.setItem('bizCardsIOS', JSON.stringify(this.contacts)); },
+                exportData() {
+                    const blob = new Blob([JSON.stringify(this.contacts)], {type: 'application/json'});
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `cards_${new Date().toISOString().slice(0,10)}.json`; a.click();
+                },
+                importData(e) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const data = JSON.parse(evt.target.result);
+                            if(Array.isArray(data)) { this.contacts = data; this.saveToStorage(); alert('匯入成功！'); }
+                        } catch(err) { alert('檔案格式錯誤'); }
+                    };
+                    reader.readAsText(e.target.files[0]);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
